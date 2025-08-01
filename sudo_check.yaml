@@ -1,0 +1,30 @@
+- name: Force sudo -l to succeed or fail the play
+  hosts: localhost
+  gather_facts: true
+  become: false
+
+  tasks:
+
+    - name: Get the hostname
+      ansible.builtin.shell: hostname
+      register: custom_hostname
+
+    - name: Run sudo -l with timeout and enforce success
+      shell: sudo -l
+      async: 5
+      poll: 5
+      register: results
+      ignore_errors: true
+
+    - debug:
+        var: results.stderr_lines
+
+    - name: Save output to /tmp/precheck.txt
+      copy:
+        dest: /tmp/precheck_{{ custom_hostname.stdout }}_sudo.txt
+        content: "{{ (results.stdout_lines + results.stderr_lines) | join('\n')  + '\n' }}"
+
+    - name: Save output to /tmp/precheck.txt with gather artefacts
+      copy:
+        dest: /tmp/precheck_{{ ansible_hostname }}_sudo1.txt
+        content: "{{ (results.stdout_lines + results.stderr_lines) | join('\n') + '\n' }}"
